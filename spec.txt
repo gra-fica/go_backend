@@ -1,0 +1,24 @@
+
+/api/v1/*
+	/product/*
+		/list
+		/add
+		/[id]
+		/add_alias/[id]
+		/delete/[id]
+
+	/category/*
+		/list
+		/add
+		/[id]
+		/delete/[id]
+
+	/sale/*
+		/list
+		/add
+		/[id]
+		/delete/[id]
+
+	
+
+
