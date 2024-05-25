@@ -1,0 +1,14 @@
+-- @GET-PRODUCT
+SELECT * FROM Product WHERE ID = ?;
+-- @GET-ALIAS
+SELECT * FROM Alias WHERE ID = ?;
+-- @GET-CATEGORY
+SELECT * FROM Category WHERE ID = ?;
+-- @GET-CATEGORY-PRODUCT
+SELECT * FROM Category_Product WHERE ProductID = ? AND ProductCategoryID = ?;
+-- @GET-SALE
+SELECT * FROM Sale WHERE ID = ?;
+-- @GET-TICKET
+SELECT * FROM Ticket WHERE ID = ?;
+-- @GET-TICKET-SALE
+SELECT * FROM Ticket_Sale WHERE TicketID = ? AND SaleID = ?;

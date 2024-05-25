@@ -1,14 +1,16 @@
 package main
 
 import (
-	"./parser"
-)
+	// "github.com/labstack/echo/v4"
+	// "github.com/labstack/echo/v4/middleware"
+	"os"
+	"strconv"
+	"strings"
 
-/*
-import (
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/mattn/go-sqlite3"
+
 	"database/sql"
+	"fmt"
 )
 
 type id_t = uint64
@@ -44,67 +46,160 @@ type Ticket struct {
 }
 
 type Database struct {
-	db *sql.DB
+	db      *sql.DB
+	parser  *SqlParser
 }
 
-func (*Database)newProduct(_name string, _price uint64) error {
-	// Add product to database
-	// Return error if product already exists
+func (d *Database) Execute(query string, params ...any) (r sql.Result, err error) {
+	if d.parser == nil{
+		err = fmt.Errorf("No parser found");
+		return
+	}
 
-	return nil;
+	q, ok := d.parser.formats[query]
+	if !ok {
+		err = fmt.Errorf("Query not found");
+		return
+	}
+	r, err = d.db.Exec(q, params...);
+	if err != nil {
+		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
+		return
+	}
+	return
 }
 
-func (*Database)newAlias(_name string, _product_id id_t) error {
-	// Add alias to database
-	// Return error if alias already exists
-
-	return nil;
+func (d *Database)NewProduct(_name string, _price uint64) (r sql.Result, err error) {
+	r, err = d.Execute("ADD-PRODUCT", _name, _price);
+	return
 }
 
-func (*Database)newCategory(_name string) error {
-	// Add category to database
-	// Return error if category already exists
-
-	return nil;
+func (d *Database)newAlias(_name string, _product_id id_t) (r sql.Result, err error) {
+	r, err = d.Execute("ADD-ALIAS", _name, _product_id);
+	return
 }
 
-func (*Database)newSale(_product_id id_t, _quantity int, _price uint64) error {
-	// Add sale to database
-	// Return error if sale already exists
-
-	return nil;
+func (d *Database)newCategory(_name string) (r sql.Result, err error) {
+	r, err = d.Execute("ADD-CATEGORY", _name);
+	return
 }
 
-func (*Database)newTicket(_sale_id []id_t, _total uint64) error {
-	// Add ticket to database
-	// Return error if ticket already exists
-
-	return nil;
+func (d *Database)newSale(_product_id id_t, _quantity int, _price uint64) (r sql.Result, err error) {
+	r, err = d.Execute("ADD-SALE", _product_id, _quantity, _price);
+	return
 }
 
-func initDatabase() *Database {
-	database := Database{};
+func (d *Database)newTicket(_sale_id []id_t, _total uint64) (r sql.Result, err error) {
+	r, err = d.Execute("ADD-TICKET", _sale_id, _total);
+	return
+}
+
+func initDatabase(p *SqlParser) (database *Database, err error){
 	db, err := sql.Open("sqlite3", "./database.db");
+
+	database = &Database{
+		parser: p,
+	};
 	if err != nil {
 		panic(err);
 	}
 
 	database.db = db;
 
-	return &database;
+	// Create tables
+	tables := []string {
+		"PRODUCT",
+		"ALIAS",
+		"CATEGORY",
+		"SALE",
+		"TICKET",
+	};
+	for _, table := range tables {
+		_, err = database.Execute("CREATE-" + table);
+		if err != nil {
+			fmt.Printf("COULD NOT CREATE TABLE: %s %v\n", table, err);
+			return
+		}
+	}
+
+	return
 }
-*/
+
+func seedDatabase(database *Database) (err error) {
+	path := "./.ignore/seed.csv";
+	data, err := os.ReadFile(path);
+	if err != nil {
+		err = fmt.Errorf("could not open file %s", path);
+		return
+	}
+
+	data_str := string(data);
+	lines := strings.Split(data_str, "\n");
+
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		parts := strings.Split(line, ";");
+		if len(parts) == 0 {
+			err = fmt.Errorf("could not parse line %s", line);
+			return
+		}
+
+		name := parts[0];
+		price, err := strconv.ParseUint(parts[1], 10, 64);
+		if err != nil {
+			err = fmt.Errorf("could not parse price %s", parts[1]);
+			return err
+		}
+
+		_, err = database.NewProduct(name, price);
+	}
+	return
+}
+
+func (p *Database) List() (r sql.Result, e error) {
+	r, e = p.Execute("LIST-PRODUCTS");
+	return
+}
 
 func main(){
-	/*
-	e := echo.New()
+	parser := newSqlParser();
+	files := []string {
+		"./sql/add.sql",
+		"./sql/create_table.sql",
+		"./sql/list.sql",
+		"./sql/delete.sql",
+	};
+	for _, file := range files {
+		err := parser.AddFromFile(file);
+		if err != nil {
+			fmt.Println(err);
+			return
+		}
+	}
 
-	e.Use(middleware.Logger())
+	database, err := initDatabase(parser);
+	if err != nil {
+		return
+	}
 
-	e.GET("/api/v1/product/list", func (c echo.Context) error {
-		return c.String(200, "List of products")
-	});
-	*/
+	re, err := database.List();
 
+	if err != nil {
+		fmt.Println(err);
+		return
+	}
+
+	fmt.Println(re);
+
+
+	// e := echo.New()
+
+	// e.Use(middleware.Logger())
+
+	// e.GET("/api/v1/product/list", func (c echo.Context) error {
+	// 	return c.String(200, "List of products")
+	// });
 }
 

@@ -1,85 +1,26 @@
 package main
+
 import (
-	"fmt"
 	"os"
 	"strings"
+	"fmt"
 )
 
 type SqlParser struct {
-	formats map[string]Parser
-}
-
-type Parser struct {
-	format string
-	total  int
-}
-
-func newParser(format string) (p Parser, err error) {
-	p = Parser{
-		format: format,
-		total: 0,
-	}
-
-	correct := 0
-	for _, c := range format {
-		if c == '{' {
-			p.total++
-			correct++
-		}
-		if c == '}' {
-			correct--
-		}
-
-		if correct != 0 {
-			err = fmt.Errorf("Invalid format")
-		}
-	}
-
-	return
-}
-
-func (p *Parser) parse(params []string) (out string, error error) {
-	if len(params) != p.total {
-		error = fmt.Errorf("Invalid number of parameters");
-		return
-	}
-
-	index := 0
-	inside := false;
-	for param := range p.format {
-		if p.format[param] == '{' {
-			inside = true;
-		} else if p.format[param] == '}' {
-			inside = false;
-		}
-
-		if inside{
-			out += string(p.format[param])
-		} else {
-			out += params[index]
-			index++
-		}
-	}
-	return
+	formats map[string]string
 }
 
 func newSqlParser() *SqlParser {
 	return &SqlParser{
-		formats: make(map[string]Parser),
+		formats: make(map[string]string),
 	}
 }
 
-func (s *SqlParser) addFormat(name string, format string) error {
-	p, err := newParser(format)
-	if err != nil {
-		return err
-	}
-
-	s.formats[name] = p
-	return nil
+func (s *SqlParser) addFormat(name string, format string) {
+	s.formats[name] = format
 }
 
-func (s* SqlParser) addFromFile(path string) (err error) {
+func (s* SqlParser) AddFromFile(path string) (err error) {
 	// Read file
 	file_bytes, err := os.ReadFile(path);
 	if err != nil {
@@ -89,22 +30,59 @@ func (s* SqlParser) addFromFile(path string) (err error) {
 	file := string(file_bytes)
 	lines := strings.Split(file, "\n")
 
-	formats:= make(map[int]string, 0)
-	for i, line := range lines {
-		if strings.Contains(line, "-- @") {
-			// Parse format
-			format := strings.Split(line, "-- @")[1]
-			formats[i] = format
-		}
-	}
-
-	for format := range formats {
-		fmt.Printf("Format: %s\n", formats[format])
+	type data struct {
+		name   string
+		beg    int
+		end	  *int
 	}
 
 	// Parse file
 	// first find all the "-- @format" lines
+	formats := []data{};
+	for i, line := range lines {
+		if strings.Contains(line, "-- @") {
+			// Parse format
+			d:= data{
+				name: strings.Split(line, "-- @")[1],
+				beg: i,
+			}
 
+			formats = append(formats, d)
+		}
+	}
+
+
+	// Then find the end of each format
+	for i, f := range formats {
+		end := f.beg + 1
+		for end < len(lines) {
+			if strings.Contains(lines[end], "--") {
+				break
+			}
+
+			end++
+		}
+
+		formats[i].end = &end
+	}
+
+	// add each format
+	for _, f := range formats {
+		// Parse format
+		format := ""
+		for i := f.beg + 1; i < *f.end; i++ {
+			format += lines[i]
+		}
+
+		s.addFormat(f.name, format)
+	}
 
 	return
+}
+
+// implement interface Formatter
+func (s *SqlParser) Format(f fmt.State, verb rune) {
+	for name, format := range s.formats {
+		fmt.Fprintf(f, "Format %s:\n%s\n\n", name, format)
+	}
 }
