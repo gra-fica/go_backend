@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // yo go wtf
 
 	"database/sql"
 	"fmt"
@@ -66,6 +66,32 @@ func (d *Database) Execute(query string, params ...any) (r sql.Result, err error
 		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
 		return
 	}
+	return
+}
+
+func (d *Database) Query(query string) (r *sql.Rows, err error) {
+	if d.parser == nil{
+		err = fmt.Errorf("No parser found");
+		return
+	}
+
+	q, ok := d.parser.formats[query]
+	if !ok {
+		err = fmt.Errorf("Query not found");
+		return
+	}
+	raw, err := d.db.Query(q);
+	if err != nil {
+		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
+		return
+	}
+
+	if raw == nil {
+		err = fmt.Errorf("empty query [%s]", query);
+		return 
+	}
+
+	r = raw;
 	return
 }
 
@@ -158,9 +184,94 @@ func seedDatabase(database *Database) (err error) {
 	return
 }
 
-func (p *Database) List() (r sql.Result, e error) {
-	r, e = p.Execute("LIST-PRODUCTS");
+func (d *Database) ListProducts() (p []Product, e error) {
+	rows, e := d.Query("LIST-PRODUCTS");
+	if e != nil {
+		return	
+	}
+
+	for rows.Next() {
+		var product Product;
+		e = rows.Scan(&product.ID, &product.Name, &product.Price);
+		if e != nil {
+			return
+		}
+		p = append(p, product);
+	}
+
+
 	return
+}
+
+func (d *Database) DeleteProduct(id id_t) (r sql.Result, err error) {
+	r, err = d.Execute("DELETE-PRODUCT", id);
+	return
+}
+
+func (d *Database) DeleteAlias(id id_t) (r sql.Result, err error) {
+	r, err = d.Execute("DELETE-ALIAS", id);
+	return
+}
+
+func (d *Database) DeleteCategory(id id_t) (r sql.Result, err error) {
+	r, err = d.Execute("DELETE-CATEGORY", id);
+	return
+}
+
+func (d *Database) DeleteSale(id id_t) (r sql.Result, err error) {
+	r, err = d.Execute("DELETE-SALE", id);
+	return
+}
+
+func (d *Database) DeleteTicket(id id_t) (r sql.Result, err error) {
+	r, err = d.Execute("DELETE-TICKET", id);
+	return
+}
+
+func (d *Database) GetProduct(id id_t) (p Product, e error) {
+	rows, e := d.Query("GET-PRODUCT");
+	if e != nil {
+		return	
+	}
+
+	for rows.Next() {
+		e = rows.Scan(&p.ID, &p.Name, &p.Price);
+		if e != nil {
+			return
+		}
+	}
+
+	return
+}
+
+
+func (d *Database) SearchProduct(name string, matcher FuzzySearcher) (p []FuzzyMatch, e error) {
+	rows, e := d.Query("LIST-PRODUCTS");
+	if e != nil {
+		return
+	}
+
+	prods := []*Product{};
+	for rows.Next() {
+		var product Product;
+		e = rows.Scan(&product.ID, &product.Name, &product.Price);
+		if e != nil {
+			return	
+		}
+		prods = append(prods, &product);
+	}
+
+	bufp := []FuzzyObject{};
+	for _, prod := range prods{
+		bufp = append(bufp, prod);
+	}
+
+	p, e = matcher.Search(name, bufp);
+	return
+}
+
+func (p *Product) GetStringFuzzy() *string {
+	return &p.Name;
 }
 
 func main(){
@@ -184,15 +295,15 @@ func main(){
 		return
 	}
 
-	re, err := database.List();
-
-	if err != nil {
-		fmt.Println(err);
+	opts, e := database.SearchProduct("Pintura Acrilica Rojo", &TokenFuzzy{});
+	if e != nil {
+		fmt.Println(e);
 		return
 	}
 
-	fmt.Println(re);
-
+	for _, p := range opts {
+		fmt.Printf("Product: %s %v\n", *p.Match.GetStringFuzzy(), p.Score);
+	}
 
 	// e := echo.New()
 
