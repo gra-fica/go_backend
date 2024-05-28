@@ -69,7 +69,7 @@ func (d *Database) Execute(query string, params ...any) (r sql.Result, err error
 	return
 }
 
-func (d *Database) Query(query string) (r *sql.Rows, err error) {
+func (d *Database) Query(query string, params ...any) (r *sql.Rows, err error) {
 	if d.parser == nil{
 		err = fmt.Errorf("No parser found");
 		return
@@ -80,7 +80,7 @@ func (d *Database) Query(query string) (r *sql.Rows, err error) {
 		err = fmt.Errorf("Query not found");
 		return
 	}
-	raw, err := d.db.Query(q);
+	raw, err := d.db.Query(q, params...);
 	if err != nil {
 		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
 		return
@@ -184,6 +184,24 @@ func seedDatabase(database *Database) (err error) {
 	return
 }
 
+func (d *Database) ListProductsWherePrice(price int) (p []Product, e error) {
+	rows, e := d.Query("LIST-PRODUCTS-WHERE-PRICE-IS", price);
+	if e != nil {
+		return	
+	}
+
+	for rows.Next() {
+		var product Product;
+		e = rows.Scan(&product.ID, &product.Name, &product.Price);
+		if e != nil {
+			return
+		}
+		p = append(p, product);
+	}
+
+	return
+}
+
 func (d *Database) ListProducts() (p []Product, e error) {
 	rows, e := d.Query("LIST-PRODUCTS");
 	if e != nil {
@@ -198,7 +216,6 @@ func (d *Database) ListProducts() (p []Product, e error) {
 		}
 		p = append(p, product);
 	}
-
 
 	return
 }
@@ -244,26 +261,33 @@ func (d *Database) GetProduct(id id_t) (p Product, e error) {
 	return
 }
 
+type DatabaseLister interface {
+	ListProducts(*Database) ([]Product, error)
+}
 
-func (d *Database) SearchProduct(name string, matcher FuzzySearcher) (p []FuzzyMatch, e error) {
-	rows, e := d.Query("LIST-PRODUCTS");
+type ListAllProducts struct {}
+
+func (l *ListAllProducts) ListProducts(d *Database) ([]Product, error) {
+	return d.ListProducts();
+}
+
+type ListProductsWherePrice struct {
+	Price int
+}
+
+func (l *ListProductsWherePrice) ListProducts(d *Database) ([]Product, error) {
+	return d.ListProductsWherePrice(l.Price);
+}
+
+func (d *Database) SearchProduct(name string, lister DatabaseLister, matcher FuzzySearcher) (p []FuzzyMatch, e error) {
+	prods, e := lister.ListProducts(d);
 	if e != nil {
 		return
 	}
 
-	prods := []*Product{};
-	for rows.Next() {
-		var product Product;
-		e = rows.Scan(&product.ID, &product.Name, &product.Price);
-		if e != nil {
-			return	
-		}
-		prods = append(prods, &product);
-	}
-
 	bufp := []FuzzyObject{};
 	for _, prod := range prods{
-		bufp = append(bufp, prod);
+		bufp = append(bufp, &prod);
 	}
 
 	p, e = matcher.Search(name, bufp);
@@ -295,7 +319,7 @@ func main(){
 		return
 	}
 
-	opts, e := database.SearchProduct("Pintura Acrilica Rojo", &TokenFuzzy{});
+	opts, e := database.SearchProduct("Impresion", &ListProductsWherePrice{200}, &TokenFuzzy{});
 	if e != nil {
 		fmt.Println(e);
 		return

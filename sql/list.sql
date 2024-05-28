@@ -1,6 +1,9 @@
 -- @LIST-PRODUCTS
 SELECT * FROM Product;
 
+-- @LIST-PRODUCTS-WHERE-PRICE-IS
+SELECT * FROM Product WHERE Price == ?;
+
 -- @LIST-ALIASES
 SELECT * FROM Alias;
 
