@@ -1,8 +1,11 @@
 package main
 
 import (
-	// "github.com/labstack/echo/v4"
-	// "github.com/labstack/echo/v4/middleware"
+	"encoding/json"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+
 	"os"
 	"strconv"
 	"strings"
@@ -279,7 +282,12 @@ func (l *ListProductsWherePrice) ListProducts(d *Database) ([]Product, error) {
 	return d.ListProductsWherePrice(l.Price);
 }
 
-func (d *Database) SearchProduct(name string, lister DatabaseLister, matcher FuzzySearcher) (p []FuzzyMatch, e error) {
+type ProductMatch struct {
+	Product Product `json:"product"`
+	Score int       `json:"score"`
+}
+
+func (d *Database) SearchProduct(name string, lister DatabaseLister, matcher FuzzySearcher) (p []ProductMatch, e error) {
 	prods, e := lister.ListProducts(d);
 	if e != nil {
 		return
@@ -290,7 +298,14 @@ func (d *Database) SearchProduct(name string, lister DatabaseLister, matcher Fuz
 		bufp = append(bufp, &prod);
 	}
 
-	p, e = matcher.Search(name, bufp);
+	scores, e := matcher.Search(name, bufp);
+	if e != nil {
+		e = fmt.Errorf("could not search %v", e);
+		return
+	}
+	for _, score := range scores {
+		p = append(p, ProductMatch{*(score.Match.(*Product)), score.Score});
+	}
 	return
 }
 
@@ -319,22 +334,49 @@ func main(){
 		return
 	}
 
-	opts, e := database.SearchProduct("Impresion", &ListProductsWherePrice{200}, &TokenFuzzy{});
-	if e != nil {
-		fmt.Println(e);
-		return
-	}
+	e := echo.New()
 
-	for _, p := range opts {
-		fmt.Printf("Product: %s %v\n", *p.Match.GetStringFuzzy(), p.Score);
-	}
+	e.Use(middleware.Logger())
 
-	// e := echo.New()
+	e.GET("/api/v1/product/list", func (c echo.Context) error {
+		products, err := database.ListProducts();
+		if err != nil {
+			return c.String(500, err.Error());
+		}
+		type ProductResponse struct {
+			Products []Product `json:"products"`
+		}
+		jsonProds, err := json.Marshal(ProductResponse{products});
+		return c.String(200, string(jsonProds))
+	});
 
-	// e.Use(middleware.Logger())
+	e.GET("/api/v1/product/search/:name", func (c echo.Context) error {
+		name := c.Param("name");
 
-	// e.GET("/api/v1/product/list", func (c echo.Context) error {
-	// 	return c.String(200, "List of products")
-	// });
+		products, err := database.SearchProduct(name, &ListAllProducts{}, &TokenFuzzy{});
+		if err != nil {
+
+			return c.String(500, err.Error());
+		}
+		type SearchProductResponse struct {
+			Products []ProductMatch `json:"products"`
+		}
+		jsonProds, err := json.Marshal(SearchProductResponse{products});
+		return c.String(200, string(jsonProds))
+	});
+
+	e.POST("/api/v1/product/delete/:id", func (c echo.Context) error {
+		id, err := strconv.ParseUint(c.Param("id"), 10, 64);
+		if err != nil {
+			return c.String(400, fmt.Sprintf("id {%v} is not a number", c.Param("id")));
+		}
+
+		_, err = database.DeleteProduct(id);
+		if err != nil {
+			return c.String(500, err.Error());
+		}
+		return c.String(200, "ok")
+	});
+
+	e.Logger.Fatal(e.Start(":8080"))
 }
-
