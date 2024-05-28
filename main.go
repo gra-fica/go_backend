@@ -365,7 +365,23 @@ func main(){
 		return c.String(200, string(jsonProds))
 	});
 
-	e.POST("/api/v1/product/delete/:id", func (c echo.Context) error {
+	e.GET("/api/v1/product/search/:name/price/:price", func (c echo.Context) error {
+		name := c.Param("name");
+		price, err := strconv.Atoi(c.Param("price"));
+		if err != nil {
+			return c.String(400, fmt.Sprintf("price {%v} is not a number", c.Param("price")));
+		}
+
+		products, err := database.SearchProduct(name, &ListProductsWherePrice{price}, &TokenFuzzy{});
+		type SearchProductResponse struct {
+			Products []ProductMatch `json:"products"`
+		}
+		jsonProds, err := json.Marshal(SearchProductResponse{products});
+		return c.String(200, string(jsonProds))
+	})
+
+
+	e.DELETE("/api/v1/product/delete/:id", func (c echo.Context) error {
 		id, err := strconv.ParseUint(c.Param("id"), 10, 64);
 		if err != nil {
 			return c.String(400, fmt.Sprintf("id {%v} is not a number", c.Param("id")));

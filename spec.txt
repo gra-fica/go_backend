@@ -1,6 +1,9 @@
 
 /api/v1/*
 	/product/*
+		/search
+			/[name]/*
+				/price/[price]
 		/list
 		/add
 		/[id]
