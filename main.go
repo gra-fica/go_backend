@@ -394,5 +394,28 @@ func main(){
 		return c.String(200, "ok")
 	});
 
+	e.POST("/api/v1/product", func (c echo.Context) error {
+		type Payload struct {
+			Name string `json:"name"`
+			Price uint64 `json:"price"`
+			Aliases []string `json:"aliases"`
+		} 
+
+		payload := Payload {};
+		err :=  (&echo.DefaultBinder{}).BindBody(c, &payload);
+
+		if err != nil{
+			return c.String(400, "Malfromated Product");
+		}
+
+
+
+		ans, err := json.Marshal(payload);
+		if err != nil{
+			return c.String(400, "Malfromated Product");
+		}
+		return c.String(200, string(ans));
+	});
+
 	e.Logger.Fatal(e.Start(":8080"))
 }
