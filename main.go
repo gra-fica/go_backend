@@ -416,8 +416,7 @@ func main(){
 			Products []ProductMatch `json:"products"`
 		}
 		jsonProds, err := json.Marshal(SearchProductResponse{products});
-		return c.String(200, string(jsonProds))
-	})
+		return c.String(200, string(jsonProds)) })
 
 
 	e.DELETE("/api/v1/product/delete/:id", func (c echo.Context) error {
@@ -457,6 +456,29 @@ func main(){
 
 	assertHanlder := http.FileServer(http.FS(os.DirFS("static/")))
 	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assertHanlder)))
+
+	e.POST("/api/v1/htmx/search/product", func(c echo.Context) error {
+		name  := c.FormValue("name")
+		fmt.Printf("name: %s\n", name)
+		type ProductsMatch struct {
+			Matches []ProductMatch
+		}
+		if len(name) <= 4 {
+			fmt.Println("name under 4 letters")
+			return c.Render(200, "search-result", ProductsMatch{});
+		}
+		
+		prods, err := database.SearchProduct(name, &ListAllProducts{}, &TokenFuzzy{});
+		for _, m := range prods{
+			fmt.Printf("%d %s\n", m.Score, m.Product.Name);
+		}
+		matches := ProductsMatch {prods[:10]}
+		if err != nil {
+			return err
+		}
+
+		return c.Render(200, "search-result", matches)
+	});
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
