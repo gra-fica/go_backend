@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"html/template"
+	"io"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -23,6 +26,12 @@ type Product struct {
 	Name string `json:"name"`
 	Price uint64 `json:"price"`
 }
+
+type ProductBuffer struct {
+	Name string `json:"name"`
+	Price uint64 `json:"price"`
+	Aliases []string `json:"aliases"`
+} 
 
 type Alias struct {
 	ID id_t `json:"id"`
@@ -223,6 +232,20 @@ func (d *Database) ListProducts() (p []Product, e error) {
 	return
 }
 
+func (d* Database) AddProduct(p ProductBuffer) (err error){
+	r, err := d.Execute("ADD-PRODUCT", p.Name, p.Price);
+	fmt.Printf("%v\n", r);
+	if err != nil {
+		return
+	}
+
+	for _ = range p.Aliases {
+		
+	}
+ 
+	return
+}
+
 func (d *Database) DeleteProduct(id id_t) (r sql.Result, err error) {
 	r, err = d.Execute("DELETE-PRODUCT", id);
 	return
@@ -313,6 +336,20 @@ func (p *Product) GetStringFuzzy() *string {
 	return &p.Name;
 }
 
+type Templates struct {
+	ts *template.Template
+}
+
+func NewTemplates() *Templates{
+	return &Templates{
+		ts: template.Must(template.ParseGlob("views/*.html")),
+	}
+}
+
+func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.ts.ExecuteTemplate(w, name, data)
+}
+
 func main(){
 	parser := newSqlParser();
 	files := []string {
@@ -335,8 +372,10 @@ func main(){
 	}
 
 	e := echo.New()
+	e.Renderer = NewTemplates();
 
 	e.Use(middleware.Logger())
+
 
 	e.GET("/api/v1/product/list", func (c echo.Context) error {
 		products, err := database.ListProducts();
@@ -395,27 +434,29 @@ func main(){
 	});
 
 	e.POST("/api/v1/product", func (c echo.Context) error {
-		type Payload struct {
-			Name string `json:"name"`
-			Price uint64 `json:"price"`
-			Aliases []string `json:"aliases"`
-		} 
 
-		payload := Payload {};
+		payload := ProductBuffer {};
 		err :=  (&echo.DefaultBinder{}).BindBody(c, &payload);
 
 		if err != nil{
 			return c.String(400, "Malfromated Product");
 		}
 
-
+		database.AddProduct(payload);
 
 		ans, err := json.Marshal(payload);
 		if err != nil{
-			return c.String(400, "Malfromated Product");
+			return c.String(400, "Something very wrong just happend");
 		}
 		return c.String(200, string(ans));
 	});
+
+	e.GET("/", func(c echo.Context) error {
+		return c.Render(200, "index", nil);
+	})
+
+	assertHanlder := http.FileServer(http.FS(os.DirFS("static/")))
+	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assertHanlder)))
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
