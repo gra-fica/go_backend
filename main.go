@@ -450,14 +450,22 @@ func main(){
 		return c.String(200, string(ans));
 	});
 
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/index", func(c echo.Context) error {
 		return c.Render(200, "index", nil);
+	})
+
+	e.GET("/ticket", func(c echo.Context) error {
+		return c.Render(200, "ticket", nil);
+	})
+
+	e.GET("/add_product", func(c echo.Context) error {
+		return c.Render(200, "add_product", nil);
 	})
 
 	assertHanlder := http.FileServer(http.FS(os.DirFS("static/")))
 	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assertHanlder)))
 
-	e.POST("/api/v1/htmx/search/product", func(c echo.Context) error {
+	e.GET("/api/v1/htmx/search/product", func(c echo.Context) error {
 		name  := c.FormValue("name")
 		fmt.Printf("name: %s\n", name)
 		type ProductsMatch struct {
