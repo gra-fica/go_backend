@@ -214,6 +214,13 @@ func (d *Database) ListProductsWherePrice(price int) (p []Product, e error) {
 	return
 }
 
+func (d* Database) GetProductFromName(name string) (p Product, err error){
+	rows, err := d.Query("GET-PRODUCT-NAME", name);
+	rows.Scan(&p.ID, &p.Name, &p.Price);
+
+	return
+}
+
 func (d *Database) ListProducts() (p []Product, e error) {
 	rows, e := d.Query("LIST-PRODUCTS");
 	if e != nil {
@@ -233,15 +240,15 @@ func (d *Database) ListProducts() (p []Product, e error) {
 }
 
 func (d* Database) AddProduct(p ProductBuffer) (err error){
-	r, err := d.Execute("ADD-PRODUCT", p.Name, p.Price);
-	fmt.Printf("%v\n", r);
+	if len(p.Name) == 0{
+		err = &json.UnsupportedValueError{}
+		return
+	}
+	_, err = d.Execute("ADD-PRODUCT", p.Name, p.Price);
 	if err != nil {
 		return
 	}
-
-	for _ = range p.Aliases {
-		
-	}
+	// for _ = range p.Aliases { }
  
 	return
 }
@@ -272,7 +279,7 @@ func (d *Database) DeleteTicket(id id_t) (r sql.Result, err error) {
 }
 
 func (d *Database) GetProduct(id id_t) (p Product, e error) {
-	rows, e := d.Query("GET-PRODUCT");
+	rows, e := d.Query("GET-PRODUCT-ID");
 	if e != nil {
 		return	
 	}
@@ -404,6 +411,20 @@ func main(){
 		return c.String(200, string(jsonProds))
 	});
 
+	e.GET("/api/v1/product/search_exact/:name", func (c echo.Context) error {
+		name := c.Param("name");
+		product, err := database.GetProductFromName(name);
+		if err != nil{
+			return c.String(404, fmt.Sprintf("%s not found", name));
+		}
+		marshal, err := json.Marshal(product);
+		if err != nil{
+			return c.String(404, fmt.Sprintf("%s not found", name));
+		}
+
+		return c.String(200, string(marshal));
+	})
+
 	e.GET("/api/v1/product/search/:name/price/:price", func (c echo.Context) error {
 		name := c.Param("name");
 		price, err := strconv.Atoi(c.Param("price"));
@@ -432,7 +453,7 @@ func main(){
 		return c.String(200, "ok")
 	});
 
-	e.POST("/api/v1/product", func (c echo.Context) error {
+	e.POST("/api/v1/product/add", func (c echo.Context) error {
 
 		payload := ProductBuffer {};
 		err :=  (&echo.DefaultBinder{}).BindBody(c, &payload);
@@ -441,7 +462,10 @@ func main(){
 			return c.String(400, "Malfromated Product");
 		}
 
-		database.AddProduct(payload);
+		err = database.AddProduct(payload);
+		if err != nil{
+			return c.String(400, "failed to add product");
+		}
 
 		ans, err := json.Marshal(payload);
 		if err != nil{
@@ -450,9 +474,15 @@ func main(){
 		return c.String(200, string(ans));
 	});
 
+
+	e.GET("/", func(c echo.Context) error {
+		return c.Redirect(300, "/index");
+	})
+
 	e.GET("/index", func(c echo.Context) error {
 		return c.Render(200, "index", nil);
 	})
+
 
 	e.GET("/ticket", func(c echo.Context) error {
 		return c.Render(200, "ticket", nil);

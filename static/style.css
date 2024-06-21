@@ -1,13 +1,3 @@
-/* {
-	width: min-content;
-	display: flex;
-}
-
-*/
-body{
-	display: flex;
-}
-
 .col h1{
 	width: 100%;
 	display: block;
