@@ -22,15 +22,19 @@ import (
 type id_t = uint64
 
 type Product struct {
-	ID id_t `json:"id"`
-	Name string `json:"name"`
+	ID    id_t   `json:"id"`
+	Name  string `json:"name"`
 	Price uint64 `json:"price"`
+	Cost  uint64 `json:"cost"`
+	Count uint64 `json:"count"`
 }
 
 type ProductBuffer struct {
 	Name string `json:"name"`
-	Price uint64 `json:"price"`
 	Aliases []string `json:"aliases"`
+	Price uint64 `json:"price"`
+	Cost  uint64 `json:"cost"`
+	Count uint64 `json:"count"`
 } 
 
 type Alias struct {
@@ -317,6 +321,10 @@ type ProductMatch struct {
 	Score int       `json:"score"`
 }
 
+func (p *Product) GetStringFuzzy() *string {
+	return &p.Name;
+}
+
 func (d *Database) SearchProduct(name string, lister DatabaseLister, matcher FuzzySearcher) (p []ProductMatch, e error) {
 	prods, e := lister.ListProducts(d);
 	if e != nil {
@@ -339,9 +347,21 @@ func (d *Database) SearchProduct(name string, lister DatabaseLister, matcher Fuz
 	return
 }
 
-func (p *Product) GetStringFuzzy() *string {
-	return &p.Name;
+func (d *Database) CreateTicket() (t Ticket, err error){
+	response , err := d.Execute("CREATE-TICKET");
+	if err != nil {
+		return
+	}
+	id, err := response.LastInsertId();
+	if err != nil{
+		return
+	}
+	q, err := d.Query("GET-TICKET-ID", id);
+	q.Scan(&t.ID, &t.Total, &t.SaleID);
+
+	return
 }
+
 
 type Templates struct {
 	ts *template.Template
@@ -383,7 +403,7 @@ func main(){
 
 	e.Use(middleware.Logger())
 
-
+	// non session api stuff
 	e.GET("/api/v1/product/list", func (c echo.Context) error {
 		products, err := database.ListProducts();
 		if err != nil {
@@ -474,23 +494,10 @@ func main(){
 		return c.String(200, string(ans));
 	});
 
+	// e.POST("/api/v1/ticket/create", func(c echo.Context) error {
+	// 	return c.String(404, "unimplemented!");
+	// })
 
-	e.GET("/", func(c echo.Context) error {
-		return c.Redirect(300, "/index");
-	})
-
-	e.GET("/index", func(c echo.Context) error {
-		return c.Render(200, "index", nil);
-	})
-
-
-	e.GET("/ticket", func(c echo.Context) error {
-		return c.Render(200, "ticket", nil);
-	})
-
-	e.GET("/add_product", func(c echo.Context) error {
-		return c.Render(200, "add_product", nil);
-	})
 
 	assertHanlder := http.FileServer(http.FS(os.DirFS("static/")))
 	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assertHanlder)))
@@ -517,6 +524,28 @@ func main(){
 
 		return c.Render(200, "search-result", matches)
 	});
+
+	// index redirect stuff
+	redirect := func(c echo.Context) error {
+		return c.Redirect(300, "/index");
+	};
+
+	e.GET("", redirect);
+	e.GET("/", redirect);
+
+	// web page rendering
+	e.GET("/index", func(c echo.Context) error {
+		return c.Render(200, "index", nil);
+	})
+
+	e.GET("/ticket", func(c echo.Context) error {
+		return c.Render(200, "ticket", nil);
+	})
+
+	e.GET("/add_product", func(c echo.Context) error {
+		return c.Render(200, "add_product", nil);
+	})
+
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

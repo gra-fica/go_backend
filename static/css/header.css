@@ -1,4 +1,13 @@
 #generic-header{
 	width: 100%;
-	display: inline-block;
+	display: flex; 
+	background-color: #aaa;
+}
+
+a {
+	padding: 5px;
+	margin: 5px;
+	background-color: #999;
+	color: #1d1d1d;
+	text-decoration: none;
 }
