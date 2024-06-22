@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -9,6 +8,7 @@ import (
 )
 
 func bind_apis(e *echo.Echo, database *Database) {
+	// non private apis
 	e.GET("/api/v1/product/list", func (c echo.Context) error {
 		products, err := database.ListProducts();
 		if err != nil {
@@ -57,6 +57,7 @@ func bind_apis(e *echo.Echo, database *Database) {
 		return c.JSON(200, SearchProductResponse{products})
 	})
 
+	// auth apis
 	// todo convert into QueryParam and require auth
 	e.DELETE("/api/v1/product/delete/:id", func (c echo.Context) error {
 		id, err := strconv.ParseUint(c.Param("id"), 10, 64);
@@ -89,11 +90,14 @@ func bind_apis(e *echo.Echo, database *Database) {
 	});
 
 	e.POST("/api/v1/ticket/create_empty", func(c echo.Context) error {
-		
 		return c.String(404, "unimplemented!");
 	})
 	e.POST("/api/v1/ticket/create_width_sales", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
 	e.POST("/api/v1/ticket/:id/add_sale/:id", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
 
 	e.POST("/api/v1/sale/add/:name/:price/:count", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
+
+	e.POST("/api/v1/auth/v1/signin", func(c echo.Context) error {
+		return nil;
+	});
 }
