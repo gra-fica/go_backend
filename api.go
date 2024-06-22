@@ -98,6 +98,16 @@ func bind_apis(e *echo.Echo, database *Database) {
 	e.POST("/api/v1/sale/add/:name/:price/:count", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
 
 	e.POST("/api/v1/auth/v1/signin", func(c echo.Context) error {
-		return nil;
+		user := UserInfo{};
+		err := (&echo.DefaultBinder{}).BindBody(c, &user);
+		if err != nil{
+			return c.String(500, "malfromed");
+		}
+	
+		_, err = database.SignIn(user.Name, user.Password);
+		if err != nil {
+			return c.String(500, "could not signin");
+		}
+		return c.String(200, "signin succesful");
 	});
 }

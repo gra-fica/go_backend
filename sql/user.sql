@@ -1,0 +1,16 @@
+-- @CREATE-USER
+CREATE TABLE IF NOT EXISTS User(
+	ID       INTEGER PRIMARY KEY AUTOINCREMENT,
+	Name     VARCHAR(40) NOT NULL,
+	Role     VARCHAR(40) NOT NULL,
+	Password BINARY(256) NOT NULL
+);
+
+-- @ADD-USER
+INSERT INTO User(Name, Role, Password) VALUES (?, ?);
+
+-- @VALIDATE-USER
+SELECT * FROM User WHERE Name == ? and Password == ?;
+
+-- @FIND-USERNAME
+SELECT Name FROM User WHERE Name == ?;

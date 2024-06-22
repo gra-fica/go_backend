@@ -1,7 +1,10 @@
 package main
+
 import (
 	"encoding/json"
+	"hash"
 
+	"crypto/sha256"
 	"os"
 	"strconv"
 	"strings"
@@ -366,4 +369,32 @@ func (d *Database) CreateTicket() (t Ticket, err error){
 	q.Scan(&t.ID, &t.Total, &t.SaleID);
 
 	return
+}
+
+
+func (d* Database) SignIn(name string, password string) (res sql.Result, err error){
+	_, err = d.Query("FIND-USERNAME", name);
+	if err != nil {
+		return
+	}
+
+	hash := sha256.New();
+	hashed_password, err := hash.Write([]byte(password))
+	if err != nil {
+		return
+	}
+
+	res, err = d.Execute("CREATE-USER", name, hashed_password);
+	return;
+}
+
+func (d* Database) LogIn(name string, password string) (res sql.Result, err error){
+	hash := sha256.New();
+	hashed_password, err := hash.Write([]byte(password))
+	if err != nil {
+		return
+	}
+	res, err = d.Execute("VALIDATE-USER", name, hashed_password);
+
+	return;
 }
