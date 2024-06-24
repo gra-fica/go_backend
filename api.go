@@ -3,9 +3,18 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	_ "github.com/labstack/echo-jwt/v4"
 
 	"github.com/labstack/echo/v4"
 )
+
+type Claims struct {
+	name string
+	jwt.RegisteredClaims
+}
 
 func bind_apis(e *echo.Echo, database *Database) {
 	// non private apis
@@ -57,7 +66,7 @@ func bind_apis(e *echo.Echo, database *Database) {
 		return c.JSON(200, SearchProductResponse{products})
 	})
 
-	// auth apis
+	// need auth apis
 	// todo convert into QueryParam and require auth
 	e.DELETE("/api/v1/product/delete/:id", func (c echo.Context) error {
 		id, err := strconv.ParseUint(c.Param("id"), 10, 64);
@@ -97,7 +106,8 @@ func bind_apis(e *echo.Echo, database *Database) {
 
 	e.POST("/api/v1/sale/add/:name/:price/:count", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
 
-	e.POST("/api/v1/auth/v1/signin", func(c echo.Context) error {
+	// auth
+	e.POST("/api/auth/v1/signin", func(c echo.Context) error {
 		user := UserInfo{};
 		err := (&echo.DefaultBinder{}).BindBody(c, &user);
 		if err != nil{
@@ -110,4 +120,29 @@ func bind_apis(e *echo.Echo, database *Database) {
 		}
 		return c.String(200, "signin succesful");
 	});
+
+	e.GET("/api/auth/v1/login", func(c echo.Context) error {
+		user := UserInfo{};
+		err := (&echo.DefaultBinder{}).BindBody(c, &user);
+		if err != nil{
+			return c.String(500, "malfromed");
+		}
+	
+		_, err = database.LogIn(user.Name, user.Password);
+		if err != nil{
+			return c.String(400, "failed to login");
+		}
+		claim := &Claims{
+			user.Name,
+			jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+		}}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+		t, err := token.SignedString([]byte("secret"))
+		if err != nil {
+			return c.String(400, "failed to login");
+		}
+		return c.JSON(200, echo.Map{"token": t});
+	});
+	
 }

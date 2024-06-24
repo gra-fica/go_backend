@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"hash"
 
 	"crypto/sha256"
 	"os"
@@ -395,6 +394,5 @@ func (d* Database) LogIn(name string, password string) (res sql.Result, err erro
 		return
 	}
 	res, err = d.Execute("VALIDATE-USER", name, hashed_password);
-
 	return;
 }
