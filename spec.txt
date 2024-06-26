@@ -2,13 +2,13 @@
 /api/v1/*
 	/product/*
 		/search
-			/[name]/*
-				/price/[price]
-		/list
-		/add
+			/[name]/* ok
+				/price/[price] ok
+		/list ok
+		/add ok
 		/[id]
 		/add_alias/[id]
-		/delete/[id]
+		/delete/[id] ok
 
 	/category/*
 		/list

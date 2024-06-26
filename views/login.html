@@ -1,0 +1,21 @@
+{{ block "login" . }}
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title></title>
+		<link href="style.css" rel="stylesheet">
+	</head>
+	<body>
+		<form
+			hx-post="/api/v1/htmx/auth/v1/login"
+			hx-target="html"
+		>
+			<input type="text" name="username" value=""></input>
+			<input type="password" name="password" value=""></input>
+			<button></button>
+		</form>	
+	</body>
+</html>
+{{ end }}

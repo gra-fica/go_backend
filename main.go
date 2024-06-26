@@ -350,7 +350,7 @@ func main(){
 			return
 		}
 	}
-
+	
 	database, err := initDatabase(parser);
 	if err != nil {
 		return
@@ -433,9 +433,48 @@ func main(){
 		return c.String(200, string(ans));
 	});
 
-	assertHanlder := http.FileServer(http.FS(os.DirFS("../react_frontend/build")))
+	e.Logger.SetLevel(log.ERROR);
+	e.POST("/api/v1/auth/v1/login", func(c echo.Context) error{
+		return nil;
+	})
+
+	// html stuff
+	e.GET("/", func(c echo.Context) error {
+		return c.Render(200, "index", nil);
+	})
+
+	e.GET("/login", func(c echo.Context) error {
+		return c.Render(200, "login", nil);
+	})
+
+
+	// static stuff
+	assertHanlder := http.FileServer(http.FS(os.DirFS("static/")))
 	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assertHanlder)))
 
-	e.Logger.SetLevel(log.ERROR);
+	// htmx stuff
+	e.POST("/api/v1/htmx/search/product", func(c echo.Context) error {
+		name  := c.FormValue("name")
+		fmt.Printf("name: %s\n", name)
+		type ProductsMatch struct {
+			Matches []ProductMatch
+		}
+		if len(name) <= 4 {
+			fmt.Println("name under 4 letters")
+			return c.Render(200, "search-result", ProductsMatch{});
+		}
+		
+		prods, err := database.SearchProduct(name, &ListAllProducts{}, &TokenFuzzy{});
+		for _, m := range prods{
+			fmt.Printf("%d %s\n", m.Score, m.Product.Name);
+		}
+		matches := ProductsMatch {prods[:10]}
+		if err != nil {
+			return err
+		}
+
+		return c.Render(200, "search-result", matches)
+	});
+
 	e.Logger.Fatal(e.Start(":8080"))
 }
