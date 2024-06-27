@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	_ "github.com/labstack/echo-jwt/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
 
 	"github.com/labstack/echo/v4"
 )
@@ -66,46 +67,6 @@ func bind_apis(e *echo.Echo, database *Database) {
 		return c.JSON(200, SearchProductResponse{products})
 	})
 
-	// need auth apis
-	// todo convert into QueryParam and require auth
-	e.DELETE("/api/v1/product/delete/:id", func (c echo.Context) error {
-		id, err := strconv.ParseUint(c.Param("id"), 10, 64);
-		if err != nil {
-			return c.String(400, fmt.Sprintf("id {%v} is not a number", c.Param("id")));
-		}
-
-		_, err = database.DeleteProduct(id);
-		if err != nil {
-			return c.String(500, err.Error());
-		}
-		return c.String(200, "ok")
-	});
-
-	// todo convert into QueryParam and require auth
-	e.POST("/api/v1/product/add", func (c echo.Context) error {
-		payload := ProductBuffer {};
-		err :=  (&echo.DefaultBinder{}).BindBody(c, &payload);
-
-		if err != nil{
-			return c.String(400, "Malfromated Product");
-		}
-
-		err = database.AddProduct(payload);
-		if err != nil{
-			return c.String(400, "failed to add product");
-		}
-
-		return c.JSON(200, payload);
-	});
-
-	e.POST("/api/v1/ticket/create_empty", func(c echo.Context) error {
-		return c.String(404, "unimplemented!");
-	})
-	e.POST("/api/v1/ticket/create_width_sales", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
-	e.POST("/api/v1/ticket/:id/add_sale/:id", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
-
-	e.POST("/api/v1/sale/add/:name/:price/:count", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
-
 	// auth
 	e.POST("/api/auth/v1/signin", func(c echo.Context) error {
 		user := UserInfo{};
@@ -144,5 +105,63 @@ func bind_apis(e *echo.Echo, database *Database) {
 		}
 		return c.JSON(200, echo.Map{"token": t});
 	});
+
+	e.GET("/api/v1/debug/user/list", func(c echo.Context) error {
+		rows, err := database.Query("GET-USERS");
+		user := User{}
+		if err != nil{
+			return c.String(500, "no users");
+		}
+		for {
+			err := rows.Scan(&user.ID, &user.Name, &user.Role, &user.Password);
+			fmt.Printf("%d %s %s %s\n", user.ID, user.Name, user.Role, user.Password);
+			if rows.Next() || err != nil{
+				break;
+			}
+		}
+		return c.String(200, "");
+	});
+
+	// need auth apis
+	// todo convert into QueryParam and require auth
+	g := e.Group("/api/v1");
+	g.Use(echojwt.JWT([]byte("secret")));
+	g.DELETE("/product/delete/:id", func (c echo.Context) error {
+		id, err := strconv.ParseUint(c.Param("id"), 10, 64);
+		if err != nil {
+			return c.String(400, fmt.Sprintf("id {%v} is not a number", c.Param("id")));
+		}
+
+		_, err = database.DeleteProduct(id);
+		if err != nil {
+			return c.String(500, err.Error());
+		}
+		return c.String(200, "ok")
+	});
+
+	// todo convert into QueryParam and require auth
+	g.POST("/product/add", func (c echo.Context) error {
+		payload := ProductBuffer {};
+		err :=  (&echo.DefaultBinder{}).BindBody(c, &payload);
+
+		if err != nil{
+			return c.String(400, "Malfromated Product");
+		}
+
+		err = database.AddProduct(payload);
+		if err != nil{
+			return c.String(400, "failed to add product");
+		}
+
+		return c.JSON(200, payload);
+	});
+
+	g.POST("/ticket/create_empty", func(c echo.Context) error {
+		return c.String(404, "unimplemented!");
+	})
+	g.POST("/ticket/create_width_sales", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
+	g.POST("/ticket/:id/add_sale/:id", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
+
+	g.POST("/sale/add/:name/:price/:count", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
 	
 }

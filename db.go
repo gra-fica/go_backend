@@ -370,29 +370,57 @@ func (d *Database) CreateTicket() (t Ticket, err error){
 	return
 }
 
-
 func (d* Database) SignIn(name string, password string) (res sql.Result, err error){
-	_, err = d.Query("FIND-USERNAME", name);
-	if err != nil {
+	row, err := d.Query("FIND-USERNAME", name);
+	fmt.Printf("using adding user %s: %s\n", name, password);
+
+	// if there is a query then the name exists
+	if row.Next() {
+		name = "";
+		row.Scan(&name);
+		fmt.Printf("found name: %s\n", name);
+		err = fmt.Errorf("there already exists this name");
+		fmt.Println("there already exists this name!!");
 		return
 	}
 
 	hash := sha256.New();
-	hashed_password, err := hash.Write([]byte(password))
+	_, err = hash.Write([]byte(password))
 	if err != nil {
+		fmt.Println("could not hash the password??");
 		return
 	}
 
-	res, err = d.Execute("CREATE-USER", name, hashed_password);
+	hashed_password := fmt.Sprintf("%x", hash.Sum(nil));
+	res, err = d.Execute("ADD-USER", name, "default", hashed_password);
+	if err != nil{
+		fmt.Printf("failed to add user: %v\n", err);
+	}	
 	return;
 }
 
-func (d* Database) LogIn(name string, password string) (res sql.Result, err error){
+func (d* Database) LogIn(name string, password string) (ok bool, err error){
 	hash := sha256.New();
-	hashed_password, err := hash.Write([]byte(password))
+	_, err = hash.Write([]byte(password))
+	row, err := d.Query("FIND-USER", name);
+	if err != nil{
+		fmt.Println("couldn not find user");
+		return;
+	}
+	hashed_password := fmt.Sprintf("%x", hash.Sum(nil));
+	user := User{};
+	row.Next()
+	err = row.Scan(&user.ID, &user.Name, &user.Role, &user.Password);
+
+	if err != nil{
+		return
+	}
+
+	fmt.Printf("%d %s %s %s\n", user.ID, user.Name, user.Role, user.Password);
+	fmt.Printf("%s == %s", hashed_password, user.Password);
 	if err != nil {
 		return
 	}
-	res, err = d.Execute("VALIDATE-USER", name, hashed_password);
+	ok = true;
 	return;
 }
