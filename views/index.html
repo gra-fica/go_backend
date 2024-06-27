@@ -9,49 +9,7 @@
 		<link href="style.css" rel="stylesheet">
 	</head>
 	<body>
-		<div class="col">
-			<h1> Ticket </h1>
-			<div id="ticket-items">
-				{{ template "ticket-items" . }}
-				<div id="new-ticket-item" class="ticket-item">
-					{{ template "new-item" . }}
-				</div>
-			</div>
-		</div>
-		<div class="col" id="search">
-			<h1> Search </h1>
-			<div id="search-results">
-				{{ template "search-result" . }}
-			</div>
-		</div>
+		{{ template "generic-header" }}
 	</body>
 </html>
-<script src="main.js"> </script>
-{{ end }}
-
-{{ block "new-item" . }}
-	<form id="new-item-form">
-		<input name="id" class="new-field" id="new-id" type="number" placeholder="id"></input>
-		<input name="name" class="new-field" id="new-name" placeholder="name"
-			hx-post="/api/v1/htmx/search/product"
-			hx-trigger="keyup delay:500"
-			hx-target="#search-results"
-		></input>
-		<input name="price" class="new-field" id="new-price" type="number" placeholder="0"></input>
-		<input name="count" class="new-field" id="new-total" type="number" placeholder="0"></input>
-	</form>
-{{ end }}
-
-{{ block "ticket-items" . }}
-<!--div class="ticket-item">
-</div-->
-{{ end }}
-
-{{ block "search-result" . }}
-	{{ range .Matches }}
-	<div class="search-result">
-		<div> {{.Product.Name }} </div>
-	</div>
-	{{ end }}
-
 {{ end }}
