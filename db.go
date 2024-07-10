@@ -36,6 +36,12 @@ type Product struct {
 	Count uint64 `json:"count"`
 }
 
+type ParcialProduct struct {
+	ID    id_t   `json:"id"`
+	Name  string `json:"name"`
+	Price uint64 `json:"price"`
+}
+
 type ProductBuffer struct {
 	Name    string `json:"name"`
 	Aliases []string `json:"aliases"`
@@ -234,9 +240,9 @@ func (d* Database) GetProductFromName(name string) (p Product, err error){
 }
 
 func (d *Database) ListProducts() (p []Product, e error) {
-	rows, e := d.Query("LIST-PRODUCTS");
+	rows, e := d.Query("LIST-PRODUCTS-PARCIAL");
 	if e != nil {
-		return	
+		return
 	}
 
 	for rows.Next() {
@@ -370,6 +376,7 @@ func (d *Database) CreateTicket() (t Ticket, err error){
 	return
 }
 
+// badly made login and signin functionsfunctions
 func (d* Database) SignIn(name string, password string) (res sql.Result, err error){
 	row, err := d.Query("FIND-USERNAME", name);
 	fmt.Printf("using adding user %s: %s\n", name, password);
@@ -416,11 +423,6 @@ func (d* Database) LogIn(name string, password string) (ok bool, err error){
 		return
 	}
 
-	fmt.Printf("%d %s %s %s\n", user.ID, user.Name, user.Role, user.Password);
-	fmt.Printf("%s == %s", hashed_password, user.Password);
-	if err != nil {
-		return
-	}
-	ok = true;
+	ok = hashed_password == user.Password;
 	return;
 }

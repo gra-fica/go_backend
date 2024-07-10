@@ -30,12 +30,17 @@ func bind_apis(e *echo.Echo, database *Database) {
 		return c.JSON(200, ProductResponse{products})
 	});
 
-	e.GET("/api/v1/product/search/:name", func (c echo.Context) error {
-		name := c.Param("name");
+	e.GET("/api/v1/product/search", func (c echo.Context) error {
+		name := c.QueryParam("name");
+		count, count_err := strconv.Atoi( c.QueryParam("total") );
 
 		products, err := database.SearchProduct(name, &ListAllProducts{}, &TokenFuzzy{});
-		if err != nil {
+		if count_err == nil{
+			products = products[0:count];
+			fmt.Println("invalid count");
+		}
 
+		if err != nil {
 			return c.String(500, err.Error());
 		}
 		type SearchProductResponse struct {
