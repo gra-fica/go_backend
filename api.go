@@ -52,8 +52,9 @@ func bind_apis(e *echo.Echo, database *Database) {
 	e.GET("/api/v1/product/search_exact/:name", func (c echo.Context) error {
 		name := c.Param("name");
 		product, err := database.GetProductFromName(name);
-		if err != nil{
-			return c.String(404, fmt.Sprintf("%s not found", name));
+		if err != nil {
+            fmt.Printf("%v", err);
+			return c.String(404, fmt.Sprintf("\"%s\" not found", name));
 		}
 		return c.JSON(200, product);
 	})

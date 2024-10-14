@@ -232,11 +232,16 @@ func (d *Database) ListProductsWherePrice(price int) (p []Product, e error) {
 	return
 }
 
-func (d* Database) GetProductFromName(name string) (p Product, err error){
+func (d* Database) GetProductFromName(name string) (*Product, error){
 	rows, err := d.Query("GET-PRODUCT-NAME", name);
-	rows.Scan(&p.ID, &p.Name, &p.Price);
+    if(err != nil){
+        return nil, err;
+    }
 
-	return
+    var p Product;
+    err = rows.Scan(&p.ID, &p.Name, &p.Price);
+
+	return &p, err;
 }
 
 func (d *Database) ListProducts() (p []Product, e error) {
