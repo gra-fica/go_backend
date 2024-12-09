@@ -1,8 +1,7 @@
 package main
 
 import (
-	"html/template"
-	"io"
+	"flag"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -15,45 +14,32 @@ import (
 	"fmt"
 )
 
-
-type Templates struct {
-	ts *template.Template
-}
-
-func NewTemplates() *Templates{
-	return &Templates{
-		ts: template.Must(template.ParseGlob("views/*.html")),
-	}
-}
-
-func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.ts.ExecuteTemplate(w, name, data)
-}
-
 func main(){
+    q_path := flag.String("q", "./sql/", "where the queries are at");
+    db_path := flag.String("db", "database.sql", "where the database is");
+
+    flag.Parse()
+
+    fmt.Printf("q path: %v\n", q_path);
+    fmt.Printf("db path: %v\n", db_path);
+
 	parser := newSqlParser();
-	files := []string {
-		"./sql/add.sql",
-		"./sql/create_table.sql",
-		"./sql/list.sql",
-		"./sql/user.sql",
-		"./sql/delete.sql",
-	};
-	for _, file := range files {
-		err := parser.AddFromFile(file);
+	entries, err := os.ReadDir(*q_path);
+	for _, entry := range entries {
+		err := parser.AddFromFile(entry.Name());
 		if err != nil {
-			fmt.Println(err);
+            fmt.Printf("Error parsing sql: %v", err);
 			return
 		}
 	}
 
-	database, err := initDatabase(parser);
+	database, err := initDatabase(parser, *db_path);
 	if err != nil {
+        fmt.Println("Error initing database");
 		return
 	}
 
 	e := echo.New()
-	e.Renderer = NewTemplates();
 
 	e.Use(middleware.Logger());
 

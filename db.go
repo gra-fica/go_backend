@@ -87,7 +87,7 @@ func (d *Database) Execute(query string, params ...any) (r sql.Result, err error
 
 	q, ok := d.parser.formats[query]
 	if !ok {
-		err = fmt.Errorf("Query not found");
+		err = fmt.Errorf("Query (%v) not found", query);
 		return
 	}
 	r, err = d.db.Exec(q, params...);
@@ -149,8 +149,8 @@ func (d *Database)newTicket(_sale_id []id_t, _total uint64) (r sql.Result, err e
 	return
 }
 
-func initDatabase(p *SqlParser) (database *Database, err error){
-	db, err := sql.Open("sqlite3", "./database.db");
+func initDatabase(p *SqlParser, path string) (database *Database, err error){
+	db, err := sql.Open("sqlite3", path);
 
 	database = &Database{
 		parser: p,
@@ -173,7 +173,7 @@ func initDatabase(p *SqlParser) (database *Database, err error){
 	for _, table := range tables {
 		_, err = database.Execute("CREATE-" + table);
 		if err != nil {
-			fmt.Printf("COULD NOT CREATE TABLE: %s %v\n", table, err);
+			fmt.Printf("COULD NOT CREATE TABLE (%s) %v\n", table, err);
 			return
 		}
 	}
