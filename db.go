@@ -181,8 +181,7 @@ func initDatabase(p *SqlParser, path string) (database *Database, err error){
 	return
 }
 
-func seedDatabase(database *Database) (err error) {
-	path := "./.ignore/seed.csv";
+func seedDatabase(path string, database *Database) (err error) {
 	data, err := os.ReadFile(path);
 	if err != nil {
 		err = fmt.Errorf("could not open file %s", path);
