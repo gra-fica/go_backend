@@ -77,7 +77,7 @@ func (s* SqlParser) AddFromFile(path string) (err error) {
 		// Parse format
 		format := ""
 		for i := f.beg + 1; i < *f.end; i++ {
-			format += lines[i]
+			format += lines[i] + " "
 		}
 
 		s.addFormat(f.name, format)

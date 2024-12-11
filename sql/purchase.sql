@@ -43,10 +43,11 @@ INSERT INTO Purchase (Desc, ClientID, Cost) VALUES (?, ?, ?);
 -- @ADD-PREPAYED-PURCHASE
 INSERT INTO Purchase (Desc, ClientID, Cost, Prepay) VALUES (?, ?, ?, ?);
 
--- @FIND-ALL-CLIENT-PURCHASES
-SELECT Purchase.Id, Client.Name, Client.Phone From Order
-INNER JOIN Client ON Purchase.ID = Client.ClientID
+-- @GET-ALL-CLIENT-PURCHASES
+SELECT Purchase.Id, Purchase.Desc, Client.Name, Client.Phone From
+    Purchase JOIN Client ON
+        Client.ID = Purchase.ClientID 
 where
-    Purchase.Done = false AND(
+    Purchase.Done = false AND (
     Client.Name  = ? Or
     Client.Phone = ?);

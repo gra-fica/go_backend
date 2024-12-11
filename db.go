@@ -92,7 +92,7 @@ func (d *Database) Execute(query string, params ...any) (r sql.Result, err error
 	}
 	r, err = d.db.Exec(q, params...);
 	if err != nil {
-		err = fmt.Errorf("Could not exec [%s] error: [%v]", query, err);
+		err = fmt.Errorf("Could not exec [%s] error: [%v]\n%v", query, err, d.parser.formats[query]);
 		return
 	}
 	return
@@ -111,7 +111,7 @@ func (d *Database) Query(query string, params ...any) (r *sql.Rows, err error) {
 	}
 	raw, err := d.db.Query(q, params...);
 	if err != nil {
-		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
+		err = fmt.Errorf("Could not query [%s] error: [%v]\n%v", query, err, d.parser.formats[query]);
 		return
 	}
 
