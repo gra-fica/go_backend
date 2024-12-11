@@ -5,6 +5,7 @@ import (
 	"flag"
 	"net/http"
 	_ "reflect"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -78,6 +79,10 @@ func main(){
             print_rows(rows)
             break;
         case "defined_query":
+            if len(args) < 2{
+                fmt.Println("missing query");
+                os.Exit(-1);
+            }
             ny := []any{};
             for _, arg := range args[2:]{
                 ny = append(ny, arg)
@@ -91,15 +96,8 @@ func main(){
             print_rows(rows)
             break;
         case "defined_exec":
-            if len(args) != 2{
-                fmt.Println("missing exec");
-                os.Exit(-1);
-            }
-            database.Execute(args[1], args)
-            break;
-        case "exec":
-            if len(args) != 2{
-                fmt.Println("missing exec");
+            if len(args) < 2{
+                fmt.Println("missing defined exec");
                 os.Exit(-1);
             }
             ny := []any{};
@@ -107,7 +105,20 @@ func main(){
                 ny = append(ny, arg)
             }
 
-            database.db.Exec(args[1], ny...);
+            r, err := database.Execute(args[1], ny...)
+            if err != nil{
+                fmt.Printf("error: %v\n", err);
+                os.Exit(-1);
+            }
+            fmt.Printf("result: %v\n", r);
+
+            break;
+        case "exec":
+            if len(args) != 2{
+                fmt.Println("missing exec");
+                os.Exit(-1);
+            }
+            database.db.Exec(args[1]);
             break;
     }
 }
@@ -136,9 +147,6 @@ func print_rows(rows* sql.Rows) (err error){
       vals := []any {};
       for _, ty := range tys{
           switch ty.DatabaseTypeName(){
-              case "VARCHAR(256)":
-                  vals = append(vals, "[STRING]");
-              break;
               case "INTEGER":
                   vals = append(vals, 0)
               break;
@@ -146,8 +154,11 @@ func print_rows(rows* sql.Rows) (err error){
                   vals = append(vals, false)
               break;
               default:
-                  fmt.Printf("unknown ty: %v\n", ty.DatabaseTypeName());
-
+                  if strings.Contains( ty.DatabaseTypeName() , "VARCHAR"){
+                    vals = append(vals, "[STRING]");
+                  } else{
+                    fmt.Printf("unknown ty: %v\n", ty.DatabaseTypeName());
+                  }
           }
       }
       valsr := []any{}

@@ -87,12 +87,12 @@ func (d *Database) Execute(query string, params ...any) (r sql.Result, err error
 
 	q, ok := d.parser.formats[query]
 	if !ok {
-		err = fmt.Errorf("Query (%v) not found", query);
+		err = fmt.Errorf("Exec (%v) not found", query);
 		return
 	}
 	r, err = d.db.Exec(q, params...);
 	if err != nil {
-		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
+		err = fmt.Errorf("Could not exec [%s] error: [%v]", query, err);
 		return
 	}
 	return
@@ -161,7 +161,9 @@ func initDatabase(p *SqlParser, path string) (database *Database, err error){
 
 	database.db = db;
 
-	// Create tables
+    // NOTE: this is bad code
+    // should automatically create the tables
+    // not this fucking bullshit
 	tables := []string {
 		"PRODUCT",
 		"ALIAS",
@@ -169,6 +171,8 @@ func initDatabase(p *SqlParser, path string) (database *Database, err error){
 		"SALE",
 		"TICKET",
 		"USER",
+        "PURCHASE",
+        "CLIENT",
 	};
 	for _, table := range tables {
 		_, err = database.Execute("CREATE-" + table);

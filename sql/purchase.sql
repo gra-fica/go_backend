@@ -24,28 +24,29 @@ SELECT * FROM Client WHERE Phone== ?;
 -- @SEARCH-CLIENT-NAME-PHONE
 SELECT * FROM Client WHERE Phone== ? and Name == ?;
 
--- @CREATE-ORDER
-CREATE TABLE IF NOT EXISTS Order(
+-- @CREATE-PURCHASE
+CREATE TABLE IF NOT EXISTS Purchase(
 	ID       INTEGER PRIMARY KEY AUTOINCREMENT,
-    Desc     VARCHAR(512),
-	ClientID INTEGER,
+    Desc     VARCHAR(512) NOT NULL,
     Cost     INTEGER NOT NULL,
+    Done     BOOLEAN DEFAULT false,
+
+	ClientID INTEGER,
     Prepay   INTEGER,
-    Done     BOOLEAN DEFAULT false NOT NULl,
 
     FOREIGN KEY (ClientID) REFERENCES Client(ID)
 );
 
--- @ADD-ORDER
-INSERT INTO Order (Desc, ClientID, Cost) VALUES (?, ?, ?);
+-- @ADD-PURCHASE
+INSERT INTO Purchase (Desc, ClientID, Cost) VALUES (?, ?, ?);
 
--- @ADD-PREPAYED-ORDER
-INSERT INTO Order (Desc, ClientID, Cost, Prepay) VALUES (?, ?, ?, ?);
+-- @ADD-PREPAYED-PURCHASE
+INSERT INTO Purchase (Desc, ClientID, Cost, Prepay) VALUES (?, ?, ?, ?);
 
--- @FIND-ALL-CLIENT-ORDERS
-SELECT Order.Id, Client.Name, Client.Phone From Order
-INNER JOIN Client ON Order.ID = Client.ClientID
+-- @FIND-ALL-CLIENT-PURCHASES
+SELECT Purchase.Id, Client.Name, Client.Phone From Order
+INNER JOIN Client ON Purchase.ID = Client.ClientID
 where
-    Order.Done = false AND(
+    Purchase.Done = false AND(
     Client.Name  = ? Or
     Client.Phone = ?);
