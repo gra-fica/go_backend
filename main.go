@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"net/http"
+	_ "reflect"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -73,55 +75,39 @@ func main(){
                 fmt.Printf("Error: %v\n", err);
                 os.Exit(-1);
             }
+            print_rows(rows)
+            break;
+        case "defined_query":
+            ny := []any{};
+            for _, arg := range args[2:]{
+                ny = append(ny, arg)
+            }
 
-            tys, err := rows.ColumnTypes()
+            rows, err := database.Query(args[1], ny...);
             if err != nil{
-                fmt.Printf("Error checking col types: %v\n", err);
+                fmt.Printf("Error: %v\n", err);
                 os.Exit(-1);
             }
-            vals := []any {};
-            for _, ty := range tys{
-                switch ty.DatabaseTypeName(){
-                    case "VARCHAR(256)":
-                        fmt.Println("VARCHAR(256)");
-                        vals = append(vals, "[STRING]");
-                    break;
-                    case "INTEGER":
-                        fmt.Println("INTEGER");
-                        vals = append(vals, 0)
-                    break;
-                    case "BOOL":
-                        fmt.Println("BOOL");
-                        vals = append(vals, false)
-                    break;
-                    default:
-                        fmt.Printf("unknown ty: %v\n", ty.DatabaseTypeName());
-
-                }
+            print_rows(rows)
+            break;
+        case "defined_exec":
+            if len(args) != 2{
+                fmt.Println("missing exec");
+                os.Exit(-1);
             }
-            valsr := []any{}
-            for _, val := range vals{
-                valsr = append(valsr, &val);
-            }
-            for rows.Next(){
-                err := rows.Scan(valsr...);
-                if err != nil{
-                    fmt.Printf("error while scanning: %f\n", err);
-                    os.Exit(-1);
-                }
-                for _, val := range valsr{
-                    fmt.Printf("%v\t", val)
-                }
-                fmt.Println();
-
-            }
+            database.Execute(args[1], args)
             break;
         case "exec":
             if len(args) != 2{
                 fmt.Println("missing exec");
                 os.Exit(-1);
             }
-            database.db.Exec(args[1])
+            ny := []any{};
+            for _, arg := range args[2:]{
+                ny = append(ny, arg)
+            }
+
+            database.db.Exec(args[1], ny...);
             break;
     }
 }
@@ -139,4 +125,45 @@ func server(database *Database) {
 	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assertHanlder)))
 
 	e.Logger.Fatal(e.Start(":8080"))
+}
+
+func print_rows(rows* sql.Rows) (err error){
+      tys, err := rows.ColumnTypes()
+      if err != nil{
+          fmt.Printf("Error checking col types: %v\n", err);
+          os.Exit(-1);
+      }
+      vals := []any {};
+      for _, ty := range tys{
+          switch ty.DatabaseTypeName(){
+              case "VARCHAR(256)":
+                  vals = append(vals, "[STRING]");
+              break;
+              case "INTEGER":
+                  vals = append(vals, 0)
+              break;
+              case "BOOL":
+                  vals = append(vals, false)
+              break;
+              default:
+                  fmt.Printf("unknown ty: %v\n", ty.DatabaseTypeName());
+
+          }
+      }
+      valsr := []any{}
+      for i := range vals{
+          valsr = append(valsr, &vals[i]);
+      }
+      for rows.Next(){
+          err := rows.Scan(valsr...);
+          if err != nil{
+              fmt.Printf("error while scanning: %f\n", err);
+              os.Exit(-1);
+          }
+          for i := range vals{
+              fmt.Printf("%v\t", vals[i])
+          }
+          fmt.Println();
+      }
+      return
 }
