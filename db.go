@@ -87,12 +87,12 @@ func (d *Database) Execute(query string, params ...any) (r sql.Result, err error
 
 	q, ok := d.parser.formats[query]
 	if !ok {
-		err = fmt.Errorf("Query not found");
+		err = fmt.Errorf("Exec (%v) not found", query);
 		return
 	}
 	r, err = d.db.Exec(q, params...);
 	if err != nil {
-		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
+		err = fmt.Errorf("Could not exec [%s] error: [%v]\n%v", query, err, d.parser.formats[query]);
 		return
 	}
 	return
@@ -111,7 +111,7 @@ func (d *Database) Query(query string, params ...any) (r *sql.Rows, err error) {
 	}
 	raw, err := d.db.Query(q, params...);
 	if err != nil {
-		err = fmt.Errorf("could not query [%s] error: [%v]", query, err);
+		err = fmt.Errorf("Could not query [%s] error: [%v]\n%v", query, err, d.parser.formats[query]);
 		return
 	}
 
@@ -129,28 +129,28 @@ func (d *Database)NewProduct(_name string, _price uint64) (r sql.Result, err err
 	return
 }
 
-func (d *Database)newAlias(_name string, _product_id id_t) (r sql.Result, err error) {
+func (d *Database)NewAlias(_name string, _product_id id_t) (r sql.Result, err error) {
 	r, err = d.Execute("ADD-ALIAS", _name, _product_id);
 	return
 }
 
-func (d *Database)newCategory(_name string) (r sql.Result, err error) {
+func (d *Database)NewCategory(_name string) (r sql.Result, err error) {
 	r, err = d.Execute("ADD-CATEGORY", _name);
 	return
 }
 
-func (d *Database)newSale(_product_id id_t, _quantity int, _price uint64) (r sql.Result, err error) {
+func (d *Database)NewSale(_product_id id_t, _quantity int, _price uint64) (r sql.Result, err error) {
 	r, err = d.Execute("ADD-SALE", _product_id, _quantity, _price);
 	return
 }
 
-func (d *Database)newTicket(_sale_id []id_t, _total uint64) (r sql.Result, err error) {
+func (d *Database)NewTicket(_sale_id []id_t, _total uint64) (r sql.Result, err error) {
 	r, err = d.Execute("ADD-TICKET", _sale_id, _total);
-	return
+    return
 }
 
-func initDatabase(p *SqlParser) (database *Database, err error){
-	db, err := sql.Open("sqlite3", "./database.db");
+func initDatabase(p *SqlParser, path string) (database *Database, err error){
+	db, err := sql.Open("sqlite3", path);
 
 	database = &Database{
 		parser: p,
@@ -161,7 +161,9 @@ func initDatabase(p *SqlParser) (database *Database, err error){
 
 	database.db = db;
 
-	// Create tables
+    // NOTE: this is bad code
+    // should automatically create the tables
+    // not this fucking bullshit
 	tables := []string {
 		"PRODUCT",
 		"ALIAS",
@@ -169,11 +171,13 @@ func initDatabase(p *SqlParser) (database *Database, err error){
 		"SALE",
 		"TICKET",
 		"USER",
+        "PURCHASE",
+        "CLIENT",
 	};
 	for _, table := range tables {
 		_, err = database.Execute("CREATE-" + table);
 		if err != nil {
-			fmt.Printf("COULD NOT CREATE TABLE: %s %v\n", table, err);
+			fmt.Printf("COULD NOT CREATE TABLE (%s) %v\n", table, err);
 			return
 		}
 	}
@@ -181,8 +185,7 @@ func initDatabase(p *SqlParser) (database *Database, err error){
 	return
 }
 
-func seedDatabase(database *Database) (err error) {
-	path := "./.ignore/seed.csv";
+func seedDatabase(path string, database *Database) (err error) {
 	data, err := os.ReadFile(path);
 	if err != nil {
 		err = fmt.Errorf("could not open file %s", path);
@@ -430,4 +433,44 @@ func (d* Database) LogIn(name string, password string) (ok bool, err error){
 
 	ok = hashed_password == user.Password;
 	return;
+}
+
+func (d* Database) NewClient(name *string, phone *string) (r sql.Result, err error){
+    if name == nil && phone == nil{
+        err = fmt.Errorf("*Database.NewClient both Arguments are NIL");
+        return
+    }
+    if name == nil {
+	    r, err = d.Execute("ADD-CLIENT-PHONE", *phone);
+    } else if phone == nil{
+	    r, err = d.Execute("ADD-CLIENT-NAME", *name);
+    } else{
+	    r, err = d.Execute("ADD-CLIENT-NAME-PHONE", *name, *phone);
+    }
+    
+    return
+}
+
+func (d* Database) FindClient(name *string, phone *string)  (r *sql.Row, err error){
+    if name == nil && phone == nil{
+        return
+    }
+    if name == nil {
+	    r = d.db.QueryRow("FIND-CLIENT-PHONE", *phone);
+    } else if phone == nil{
+	    r = d.db.QueryRow("FIND-CLIENT-NAME", *name);
+    } else{
+	    r = d.db.QueryRow("FIND-CLIENT-NAME-PHONE", *name, *phone);
+    }
+
+    return;
+}
+
+func (d* Database) NewOrder(name string, clientID int, cost int, prepay *int) (r sql.Result, err error){
+    if prepay == nil{
+	    r, err = d.Execute("ADD-ORDER", name, clientID, cost);
+    } else{
+	    r, err = d.Execute("ADD-ORDER", name, clientID, cost, prepay);
+    }
+    return
 }

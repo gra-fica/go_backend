@@ -28,6 +28,10 @@ func (s* SqlParser) AddFromFile(path string) (err error) {
 	}
 
 	file := string(file_bytes)
+
+    // windows bullshit 
+    file = strings.Replace(file, "\r", "", -1)
+
 	lines := strings.Split(file, "\n")
 
 	type data struct {
@@ -38,6 +42,7 @@ func (s* SqlParser) AddFromFile(path string) (err error) {
 
 	// Parse file
 	// first find all the "-- @format" lines
+    // it is the first place where the query starts
 	formats := []data{};
 	for i, line := range lines {
 		if strings.Contains(line, "-- @") {
@@ -53,6 +58,7 @@ func (s* SqlParser) AddFromFile(path string) (err error) {
 
 
 	// Then find the end of each format
+    // The start of the format is where another one begins (or a comment)
 	for i, f := range formats {
 		end := f.beg + 1
 		for end < len(lines) {
@@ -71,7 +77,7 @@ func (s* SqlParser) AddFromFile(path string) (err error) {
 		// Parse format
 		format := ""
 		for i := f.beg + 1; i < *f.end; i++ {
-			format += lines[i]
+			format += lines[i] + " "
 		}
 
 		s.addFormat(f.name, format)
