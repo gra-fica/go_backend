@@ -43,6 +43,9 @@ INSERT INTO Purchase (Desc, ClientID, Cost) VALUES (?, ?, ?);
 -- @ADD-PREPAYED-PURCHASE
 INSERT INTO Purchase (Desc, ClientID, Cost, Prepay) VALUES (?, ?, ?, ?);
 
+-- @GET-ALL-PURCHASES
+SELECT * From Purchase;
+
 -- @GET-ALL-CLIENT-PURCHASES
 SELECT Purchase.Id, Purchase.Desc, Client.Name, Client.Phone From
     Purchase JOIN Client ON

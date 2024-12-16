@@ -74,6 +74,15 @@ type Ticket struct {
 	Total  uint64 `json:"total"`
 }
 
+type Purchase struct {
+	ID       id_t   `json:"id"`
+    Desc     string `json:"desc"`
+	Cost     uint64 `json:"cost"`
+	Done     bool   `json:"done"`
+	ClientID int    `json:"clientid"`
+	Prepay   int    `json:"prepay"`
+}
+
 type Database struct {
 	db      *sql.DB
 	parser  *SqlParser
@@ -466,11 +475,29 @@ func (d* Database) FindClient(name *string, phone *string)  (r *sql.Row, err err
     return;
 }
 
-func (d* Database) NewOrder(name string, clientID int, cost int, prepay *int) (r sql.Result, err error){
+func (d* Database) NewPurchase(desc string, clientID int, cost int, prepay *int) (r sql.Result, err error){
     if prepay == nil{
-	    r, err = d.Execute("ADD-ORDER", name, clientID, cost);
+	    r, err = d.Execute("ADD-PURCHASE", desc, clientID, cost);
     } else{
-	    r, err = d.Execute("ADD-ORDER", name, clientID, cost, prepay);
+	    r, err = d.Execute("ADD-PURCHASE", desc, clientID, cost, prepay);
     }
+    return
+}
+
+func (d* Database) GetPurchase() (orders []Purchase, err error){
+    rows, err := d.Query("GET-ALL-PURCHASES")
+    if err != nil {
+        fmt.Println("error: %v", err)
+        return
+    }
+    for rows.Next(){
+        order := Purchase{};
+        err = rows.Scan( &order.ID, &order.Desc, &order.Cost, &order.Done, &order.ClientID, &order.Prepay);
+	    if err != nil{
+	    	return
+	    }
+        orders = append(orders, order);
+    }
+
     return
 }

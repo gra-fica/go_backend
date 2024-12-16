@@ -19,7 +19,7 @@ import (
 
 func main(){
     q_path := flag.String("q", "./sql/", "where the queries are at");
-    db_path := flag.String("db", "database.sql", "where the database is");
+    db_path := flag.String("db", "database.db", "where the database is");
 
     flag.Parse()
     args := flag.CommandLine.Args()
@@ -45,9 +45,10 @@ func main(){
 	}
 
     if len(args) == 0{
-        fmt.Println("no args!");
-        os.Exit(-1);
+        server(database);
+        return
     }
+
     switch args[0] {
         case "start server":
             server(database)
@@ -120,6 +121,13 @@ func main(){
             }
             database.db.Exec(args[1]);
             break;
+        case "server":
+            server(database)
+            break;
+        default:
+            fmt.Printf("unknonw arg: %v\n", args[0])
+            os.Exit(-1)
+            break
     }
 }
 
@@ -146,10 +154,12 @@ func print_rows(rows* sql.Rows) (err error){
       }
       vals := []any {};
       for _, ty := range tys{
+          fmt.Printf("%v\t", ty.Name())
           switch ty.DatabaseTypeName(){
               case "INTEGER":
                   vals = append(vals, 0)
               break;
+              case "BOOLEAN":
               case "BOOL":
                   vals = append(vals, false)
               break;
@@ -158,13 +168,17 @@ func print_rows(rows* sql.Rows) (err error){
                     vals = append(vals, "[STRING]");
                   } else{
                     fmt.Printf("unknown ty: %v\n", ty.DatabaseTypeName());
+                    os.Exit(-1);
                   }
           }
       }
+      fmt.Println()
+
       valsr := []any{}
       for i := range vals{
           valsr = append(valsr, &vals[i]);
       }
+
       for rows.Next(){
           err := rows.Scan(valsr...);
           if err != nil{
