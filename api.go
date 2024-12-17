@@ -75,25 +75,42 @@ func bind_apis(e *echo.Echo, database *Database) {
 
     e.GET("/api/v1/purchase/list", func(c echo.Context) (err error) {
         purchase, err := database.GetPurchase();
+        if len(purchase) == 0{
+            fmt.Println("no purchases??");
+        }
+
+        if err != nil {
+            return c.JSON(400, "{ \"error\": \"could not retrieve purchases\"}");
+        }
+
         return c.JSON(200, purchase);
     });
 
 	e.POST("/api/v1/purchase/add", func (c echo.Context) (err error) {
         payload := struct {
-            Cost int    `json:"cost"`
-            Desc string `json:"desc"`
+            Cost float32 `json:"cost"`
+            Desc string  `json:"desc"`
         }{};
 		err = (&echo.DefaultBinder{}).BindBody(c, &payload);
         if err != nil{
             fmt.Printf("error: %e\n", err);
 		    return c.JSON(400, "failed to add purchase");
         }
-        _, err = database.NewPurchase(payload.Desc, 0, payload.Cost, nil);
+        if payload.Desc == ""{
+            fmt.Printf("error: %e\n", err);
+		    return c.JSON(400, "Description should not be empty");
+        }
+
+        if payload.Cost == 0{
+            fmt.Printf("error: %e\n", err);
+		    return c.JSON(400, "Cost should not be 0");
+        }
+
+        _, err = database.NewPurchase(payload.Desc, 0, int(payload.Cost * 100), nil);
         if err != nil{
             fmt.Printf("error: %e\n", err);
 		    return c.JSON(400, "failed to add purchase");
         }
-
 
 		return c.JSON(200, "");
 	});
