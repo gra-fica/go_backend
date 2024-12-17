@@ -73,6 +73,32 @@ func bind_apis(e *echo.Echo, database *Database) {
 		return c.JSON(200, SearchProductResponse{products})
 	})
 
+    e.GET("/api/v1/purchase/list", func(c echo.Context) (err error) {
+        purchase, err := database.GetPurchase();
+        return c.JSON(200, purchase);
+    });
+
+	e.POST("/api/v1/purchase/add", func (c echo.Context) (err error) {
+        payload := struct {
+            Cost int    `json:"cost"`
+            Desc string `json:"desc"`
+        }{};
+		err = (&echo.DefaultBinder{}).BindBody(c, &payload);
+        if err != nil{
+            fmt.Printf("error: %e\n", err);
+		    return c.JSON(400, "failed to add purchase");
+        }
+        _, err = database.NewPurchase(payload.Desc, 0, payload.Cost, nil);
+        if err != nil{
+            fmt.Printf("error: %e\n", err);
+		    return c.JSON(400, "failed to add purchase");
+        }
+
+
+		return c.JSON(200, "");
+	});
+
+
 	// auth
 	e.POST("/api/auth/v1/signin", func(c echo.Context) error {
 		user := UserInfo{};
@@ -167,7 +193,4 @@ func bind_apis(e *echo.Echo, database *Database) {
 	})
 	g.POST("/ticket/create_width_sales", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
 	g.POST("/ticket/:id/add_sale/:id", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
-
-	g.POST("/sale/add/:name/:price/:count", func(c echo.Context) error { return c.String(404, "unimplemented!"); })
-	
 }
