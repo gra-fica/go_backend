@@ -18,3 +18,7 @@ INSERT INTO Ticket (Date) VALUES (?);
 
 -- @ADD-TICKET-SALE
 INSERT INTO Ticket_Sale (TicketID, SaleID) VALUES (?, ?);
+
+
+
+-- ORDERS
