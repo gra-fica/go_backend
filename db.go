@@ -75,12 +75,12 @@ type Ticket struct {
 }
 
 type Purchase struct {
-	ID       id_t   `json:"id"`
-    Desc     string `json:"desc"`
-	Cost     uint64 `json:"cost"`
-	Done     bool   `json:"done"`
-	ClientID int    `json:"clientid"`
-	Prepay   int    `json:"prepay"`
+	ID       id_t          `json:"id"`
+    Desc     string        `json:"desc"`
+	Cost     uint64        `json:"cost"`
+	Done     bool          `json:"done"`
+	ClientID sql.NullInt64 `json:"client_id"`
+	Prepay   sql.NullInt32 `json:"prepay"`
 }
 
 type Database struct {
@@ -486,10 +486,13 @@ func (d* Database) NewPurchase(desc string, clientID int, cost int, prepay *int)
 
 func (d* Database) GetPurchase() (orders []Purchase, err error){
     rows, err := d.Query("GET-ALL-PURCHASES")
+    defer rows.Close()
+
     if err != nil {
-        fmt.Println("error: %v", err)
+        fmt.Printf("error: %v\n", err);
         return
     }
+
     for rows.Next(){
         order := Purchase{};
         err = rows.Scan( &order.ID, &order.Desc, &order.Cost, &order.Done, &order.ClientID, &order.Prepay);
