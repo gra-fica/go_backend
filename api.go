@@ -75,16 +75,27 @@ func bind_apis(e *echo.Echo, database *Database) {
 
     e.GET("/api/v1/purchase/list", func(c echo.Context) (err error) {
         purchase, err := database.GetPurchase();
-        if len(purchase) == 0{
-            fmt.Println("no purchases??");
-        }
-
         if err != nil {
+            fmt.Printf("getting list error: %e\n", err);
             return c.JSON(400, "{ \"error\": \"could not retrieve purchases\"}");
         }
 
         return c.JSON(200, purchase);
     });
+
+    e.DELETE("/api/v1/purchase/delete/:id", func (c echo.Context) (err error) {
+        id, err := strconv.ParseUint(c.Param("id"), 10, 0);
+        if err != nil{
+		    return c.JSON(400, "invalid id");
+        }
+        r, err := database.DeletePurchase(id);
+        if err != nil{
+            fmt.Printf("error: %e\n", err);
+		    return c.JSON(400, "could not delete");
+        }
+        fmt.Printf("%v\n", r);
+		return c.JSON(200, "");
+	});
 
 	e.POST("/api/v1/purchase/add", func (c echo.Context) (err error) {
         payload := struct {
@@ -101,9 +112,9 @@ func bind_apis(e *echo.Echo, database *Database) {
 		    return c.JSON(400, "Description should not be empty");
         }
 
-        if payload.Cost == 0{
+        if payload.Cost <= 0{
             fmt.Printf("error: %e\n", err);
-		    return c.JSON(400, "Cost should not be 0");
+		    return c.JSON(400, "Cost should be bigger than 0");
         }
 
         _, err = database.NewPurchase(payload.Desc, 0, int(payload.Cost * 100), nil);
