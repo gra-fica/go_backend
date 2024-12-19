@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS Purchase(
 -- @ADD-PURCHASE
 INSERT INTO Purchase (Desc, ClientID, Cost) VALUES (?, ?, ?);
 
+-- @DELETE-PURCHASE
+DELETE FROM Purchase WHERE ID == ?;
+
 -- @ADD-PREPAYED-PURCHASE
 INSERT INTO Purchase (Desc, ClientID, Cost, Prepay) VALUES (?, ?, ?, ?);
 

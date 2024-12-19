@@ -228,6 +228,7 @@ func seedDatabase(path string, database *Database) (err error) {
 
 func (d *Database) ListProductsWherePrice(price int) (p []Product, e error) {
 	rows, e := d.Query("LIST-PRODUCTS-WHERE-PRICE-IS", price);
+    defer rows.Close();
 	if e != nil {
 		return	
 	}
@@ -246,6 +247,7 @@ func (d *Database) ListProductsWherePrice(price int) (p []Product, e error) {
 
 func (d* Database) GetProductFromName(name string) (*Product, error){
 	rows, err := d.Query("GET-PRODUCT-NAME", name);
+    defer rows.Close();
     if(err != nil){
         return nil, err;
     }
@@ -258,6 +260,7 @@ func (d* Database) GetProductFromName(name string) (*Product, error){
 
 func (d *Database) ListProducts() (p []Product, e error) {
 	rows, e := d.Query("LIST-PRODUCTS-PARCIAL");
+    defer rows.Close();
 	if e != nil {
 		return
 	}
@@ -315,6 +318,7 @@ func (d *Database) DeleteTicket(id id_t) (r sql.Result, err error) {
 
 func (d *Database) GetProduct(id id_t) (p Product, e error) {
 	rows, e := d.Query("GET-PRODUCT-ID");
+    defer rows.Close();
 	if e != nil {
 		return	
 	}
@@ -501,6 +505,13 @@ func (d* Database) GetPurchase() (orders []Purchase, err error){
 	    }
         orders = append(orders, order);
     }
+
+    return
+}
+
+
+func (d* Database) DeletePurchase(id id_t) (r sql.Result, err error){
+    r, err = d.Execute("DELETE-PURCHASE", id);
 
     return
 }

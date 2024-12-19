@@ -18,3 +18,4 @@ SELECT * FROM Sale WHERE ID == ?;
 SELECT * FROM Ticket WHERE ID == ?;
 -- @GET-TICKET-SALE-ID
 SELECT * FROM Ticket_Sale WHERE TicketID == ? AND SaleID == ?;
+
