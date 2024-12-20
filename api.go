@@ -117,7 +117,7 @@ func bind_apis(e *echo.Echo, database *Database) {
 		    return c.JSON(400, "Cost should be bigger than 0");
         }
 
-        _, err = database.NewPurchase(payload.Desc, 0, int(payload.Cost * 100), nil);
+        _, err = database.NewPurchase(payload.Desc, 0, int(payload.Cost), nil);
         if err != nil{
             fmt.Printf("error: %e\n", err);
 		    return c.JSON(400, "failed to add purchase");
